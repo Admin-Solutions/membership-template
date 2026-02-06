@@ -322,7 +322,7 @@ export function LazyWallet({ isOpen, onClose }: LazyWalletProps) {
 
               {/* Loading state */}
               {loading && (
-                <div className="flex items-center justify-center h-full pl-10">
+                <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 text-[#6366f1] animate-spin mx-auto mb-4" />
                     <p className="text-[#6b6b6b]">Loading wallet...</p>
@@ -332,7 +332,7 @@ export function LazyWallet({ isOpen, onClose }: LazyWalletProps) {
 
               {/* Error state */}
               {error && !loading && (
-                <div className="flex items-center justify-center h-full pl-10">
+                <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <p className="text-red-500 mb-4">{error}</p>
                     <button
@@ -349,10 +349,10 @@ export function LazyWallet({ isOpen, onClose }: LazyWalletProps) {
                 </div>
               )}
 
-              {/* Wallet container */}
+              {/* Wallet container - edge to edge, pill overlays */}
               <div
                 ref={containerRef}
-                className={`flex-1 overflow-y-auto overflow-x-hidden pl-10 ${loading || error ? 'hidden' : ''}`}
+                className={`flex-1 overflow-y-auto overflow-x-hidden ${loading || error ? 'hidden' : ''}`}
                 style={{
                   paddingTop: 'env(safe-area-inset-top, 0px)',
                   paddingBottom: 'env(safe-area-inset-bottom, 0px)',

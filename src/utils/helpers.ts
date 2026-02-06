@@ -75,10 +75,11 @@ export function formatEventDate(isoString: string | undefined): string {
 
 export function buildWalletURLWithVirtualProxy(virtualProxyGUID: string | undefined): string | null {
   try {
-    let url = window.location.href.split("#")[0];
-    url = url.replace(/\/+$/, "");
-    if (virtualProxyGUID) url = `${url}/${virtualProxyGUID}`;
-    return url;
+    if (!virtualProxyGUID) return null;
+    // Build URL: https://seemynft.page/mytoken/{tokenGUID}/{VirtualProxyGUID}
+    const tokenGUID = (window as any).__BOOTSTRAP__?.WTOB_GUID;
+    if (!tokenGUID) return null;
+    return `https://seemynft.page/mytoken/${tokenGUID}/${virtualProxyGUID}`;
   } catch (err) {
     console.error("Error building wallet URL:", err);
     return null;

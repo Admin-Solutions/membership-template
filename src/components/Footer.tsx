@@ -13,6 +13,15 @@ interface FooterProps {
   setNavExpanded: (expanded: boolean) => void;
 }
 
+interface NavItem {
+  title: string;
+  icon: React.ComponentType<{ size?: number }>;
+  path?: string;
+  isModal?: boolean;
+  isMain?: boolean;
+  onClick?: () => void;
+}
+
 export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: FooterProps) {
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -23,7 +32,7 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
 
   // Main navigation items (without Profile - moved to header)
   // Wallet is special - opens modal instead of navigating
-  const navItems = [
+  const navItems: NavItem[] = [
     { title: "Hub", icon: Network, path: "/hub" },
     { title: "Wallet", icon: Wallet, path: "/wallet", isModal: true },
     { title: "Benefits", icon: Gift, path: "/benefits" },
@@ -76,85 +85,85 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
     }
   };
 
-  // Find active nav item for collapsed state
-  const activeNavItem = navItems.find((item) => location.pathname === item.path) || navItems[0];
-  const ActiveIcon = activeNavItem.icon;
-
   // Determine if nav pill should be collapsed
   const isCollapsed = navCollapsed && !navExpanded;
 
   const mainButton = showBack
-    ? { title: "Back", icon: ArrowUpLeft, onClick: handleBackClick }
-    : { title: "Home", icon: Home, path: "/" };
+    ? { title: "Back", icon: ArrowUpLeft, onClick: handleBackClick, path: undefined }
+    : { title: "Home", icon: Home, path: "/", onClick: undefined };
 
-  const MainIcon = mainButton.icon;
+  // Toggle nav expansion when collapsed trigger is clicked
+  const toggleNavExpansion = () => {
+    setNavExpanded(!navExpanded);
+  };
+
+  // Build all nav items including home/back
+  const allNavItems: NavItem[] = [
+    { ...mainButton, isMain: true },
+    ...navItems,
+  ];
 
   return (
     <>
       <div className="footer-container">
         {/* Left Nav Pill - Collapsible */}
         <div className={`nav-pill ${isCollapsed ? "nav-pill-collapsed" : "nav-pill-expanded"}`}>
-          {isCollapsed ? (
-            // Collapsed: Show only active icon as trigger
-            <button
-              className="nav-trigger"
-              onClick={() => setNavExpanded(true)}
-              aria-label="Expand navigation"
-            >
-              <ActiveIcon size={22} />
-            </button>
-          ) : (
-            // Expanded: Show all nav items
-            <>
-              {/* Home/Back button */}
-              {mainButton.path ? (
-                <NavLink to={mainButton.path} className="nav-item">
-                  <MainIcon size={22} />
-                  <span className="nav-label">{mainButton.title}</span>
-                </NavLink>
-              ) : (
-                <button
-                  className="nav-item"
-                  onClick={mainButton.onClick}
+          {allNavItems.map((item) => {
+            const IconComponent = item.icon;
+            const isActive = item.path === location.pathname ||
+              (item.path === "/hub" && location.pathname.startsWith("/hub")) ||
+              (item.isModal && walletOpen);
+            const isTrigger = isCollapsed && isActive;
+            const isHidden = isCollapsed && !isActive;
+
+            // Determine class names
+            const classNames = [
+              "nav-item",
+              isActive ? "nav-item-active" : "",
+              isTrigger ? "nav-item-trigger" : "",
+              isHidden ? "nav-item-hidden" : "",
+            ].filter(Boolean).join(" ");
+
+            // Handle click - if trigger, expand nav; otherwise normal action
+            const handleClick = (e: React.MouseEvent) => {
+              if (isTrigger) {
+                e.preventDefault();
+                toggleNavExpansion();
+                return;
+              }
+              if (item.isModal) {
+                setWalletOpen(true);
+              } else if (item.onClick) {
+                item.onClick();
+              }
+            };
+
+            // Use NavLink for items with paths (except modals), button otherwise
+            if (item.path && !item.isModal && !item.onClick) {
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={isTrigger ? (e) => { e.preventDefault(); toggleNavExpansion(); } : undefined}
+                  className={classNames}
                 >
-                  <MainIcon size={22} />
-                  <span className="nav-label">{mainButton.title}</span>
-                </button>
-              )}
+                  <IconComponent size={20} />
+                  <span className="nav-label">{item.title}</span>
+                </NavLink>
+              );
+            }
 
-              {/* Nav items */}
-              {navItems.map((item) => {
-                const IconComponent = item.icon;
-
-                // Wallet opens modal instead of navigating
-                if (item.isModal) {
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => setWalletOpen(true)}
-                      className={`nav-item ${walletOpen ? "nav-item-active" : ""}`}
-                    >
-                      <IconComponent size={22} />
-                      <span className="nav-label">{item.title}</span>
-                    </button>
-                  );
-                }
-
-                return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) =>
-                      `nav-item ${isActive ? "nav-item-active" : ""}`
-                    }
-                  >
-                    <IconComponent size={22} />
-                    <span className="nav-label">{item.title}</span>
-                  </NavLink>
-                );
-              })}
-            </>
-          )}
+            return (
+              <button
+                key={item.path || item.title}
+                onClick={handleClick}
+                className={classNames}
+              >
+                <IconComponent size={20} />
+                <span className="nav-label">{item.title}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Right Hamburger Pill */}
@@ -185,7 +194,7 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              transition={{ type: "spring", damping: 30, stiffness: 120 }}
               className="menu-panel"
             >
               <div className="menu-header">

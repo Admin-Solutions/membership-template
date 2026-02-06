@@ -208,7 +208,7 @@ export default function Hub() {
               </div>
             </section>
 
-            <section className="hub py-4">
+            <section className="hub py-2">
               <div className="max-w-4xl mx-auto px-4">
                 {(activePanel.structural || activePanel.aggregatedTokens) && (
                   <Grid
