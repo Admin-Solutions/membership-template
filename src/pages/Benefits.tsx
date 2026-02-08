@@ -71,8 +71,10 @@ export default function Benefits() {
   );
 
   return (
-    <div id="benefits">
+    <div id="benefits" className="page-container">
       <div className="max-w-4xl mx-auto px-4">
+        <h1 className="page-title">Benefits</h1>
+        <p className="page-subtitle">Exclusive perks for members</p>
         <div className="grid-wrap">
           <div className="grid-item">
             <div

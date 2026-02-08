@@ -35,8 +35,10 @@ export default function Wallet() {
 
   return (
     <>
-      <section id="wallet">
+      <section id="wallet" className="page-container">
         <div className="max-w-4xl mx-auto px-4">
+          <h1 className="page-title">Wallet</h1>
+          <p className="page-subtitle">Manage your funds and cards</p>
           <div className="grid-wrap">
             <div className="grid-item">
               <div
