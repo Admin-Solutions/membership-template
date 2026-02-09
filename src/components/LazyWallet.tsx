@@ -18,9 +18,6 @@ declare global {
     MountableWallet?: {
       mount: (container: HTMLElement, config: WalletConfig) => WalletInstance
     }
-    eventInfo?: {
-      authorName?: string
-    }
   }
 }
 
@@ -135,7 +132,7 @@ export function LazyWallet({ isOpen, onClose }: LazyWalletProps) {
       if (containerRef.current) {
         walletRef.current = window.MountableWallet.mount(containerRef.current, {
           walletGuid: walletGUID,
-          walletName: window.eventInfo?.authorName || 'User',
+          walletName: window.eventInfo?.Attendee?.ProfileTitle || 'User',
           pmc: pmc,
           apiBaseUrl: BASE_URL,
           onAuthError: (err) => {

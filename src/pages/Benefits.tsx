@@ -73,31 +73,49 @@ export default function Benefits() {
   return (
     <div id="benefits">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="grid-wrap">
-          <div className="grid-item">
-            <div
-              className="box box-travel"
-              onClick={() => setActiveWalletLink(TRAVEL_URL)}
-            >
-              <div className="title">Travel</div>
+        <div className="grid grid-cols-3 gap-2.5">
+          <div
+            className="relative aspect-square rounded-3xl overflow-hidden cursor-pointer group border border-[#212121]"
+            onClick={() => setActiveWalletLink(TRAVEL_URL)}
+          >
+            <img
+              src="https://images.unsplash.com/photo-1527631746610-bca00a040d60"
+              alt="Travel"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>Travel</h3>
             </div>
           </div>
 
-          <div className="grid-item">
-            <div
-              className="box box-events"
-              onClick={() => setShowEventsModal(true)}
-            >
-              <div className="title">Events</div>
+          <div
+            className="relative aspect-square rounded-3xl overflow-hidden cursor-pointer group border border-[#212121]"
+            onClick={() => setShowEventsModal(true)}
+          >
+            <img
+              src="https://images.unsplash.com/photo-1467810563316-b5476525c0f9"
+              alt="Events"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>Events</h3>
             </div>
           </div>
 
-          <div className="grid-item">
-            <div
-              className="box box-games"
-              onClick={() => setActiveWalletLink(NFT_URL)}
-            >
-              <div className="title">Games</div>
+          <div
+            className="relative aspect-square rounded-3xl overflow-hidden cursor-pointer group border border-[#212121]"
+            onClick={() => setActiveWalletLink(NFT_URL)}
+          >
+            <img
+              src="https://images.pexels.com/photos/2708981/pexels-photo-2708981.jpeg"
+              alt="Games"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>Games</h3>
             </div>
           </div>
         </div>

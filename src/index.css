@@ -709,74 +709,25 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Base grid-item / box kept for events modal cards */
 .grid-item {
   width: 100%;
 }
 
 .grid-item .box {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   position: relative;
   cursor: pointer;
   overflow: hidden;
-  z-index: 0;
   border-radius: var(--radius-lg);
   border: 1px solid var(--surface-border);
-  transform-style: preserve-3d;
-  transition: transform var(--anim-normal) ease, box-shadow var(--anim-normal) ease;
-}
-
-.grid-item .box:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px var(--accent-glow);
-}
-
-.grid-item .box::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background-color: rgba(0, 0, 0, 0.6);
-  transition: background-color var(--anim-normal) ease;
-}
-
-.grid-item:first-child .box::before {
-  background: none;
-}
-
-.grid-item .box:hover::before {
-  background: none;
-}
-
-.grid-wrap:hover .grid-item .box::before {
-  background-color: rgba(0, 0, 0, 0.6);
-}
-
-.grid-wrap:hover .grid-item .box:hover::before {
-  background: none;
-}
-
-.grid-wrap:hover .grid-item:first-child:not(:hover) .box::before {
-  background-color: rgba(0, 0, 0, 0.6);
 }
 
 .grid-item .box .title {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  right: 0;
-  z-index: 2;
   color: var(--text-primary);
   line-height: 1.2;
-  font-weight: 400;
-  padding: 10px;
-  border-radius: var(--radius-lg);
+  font-weight: 500;
   font-family: var(--font-heading);
-  font-size: 20px;
-  margin: auto;
+  font-size: 18px;
 }
 
 /* ========================================
@@ -1242,17 +1193,6 @@ h1, h2, h3, h4, h5, h6 {
   padding: 20px 0;
 }
 
-#benefits .box-travel {
-  background-image: url("https://images.unsplash.com/photo-1527631746610-bca00a040d60");
-}
-
-#benefits .box-events {
-  background-image: url("https://images.unsplash.com/photo-1467810563316-b5476525c0f9");
-}
-
-#benefits .box-games {
-  background-image: url("https://images.pexels.com/photos/2708981/pexels-photo-2708981.jpeg");
-}
 
 /* ========================================
    Read More Button

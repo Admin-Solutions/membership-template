@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
 import { startSignalR, stopSignalR, onSignalREvent, getConnectionState } from '../services/signalRService'
 import { walletGUID } from '../store/config'
 

@@ -19,7 +19,9 @@ export const guid = (): string => {
 
 export const walletGUID = guid();
 
-export const BASE_URL = "https://seemynft.page";
+// In dev, use relative URL so requests go through Vite proxy (avoids CORS)
+// In production, the app is served from the same origin
+export const BASE_URL = import.meta.env.DEV ? "" : "https://seemynft.page";
 
 export interface ApiPayload {
   '@ChitAuthority'?: string;

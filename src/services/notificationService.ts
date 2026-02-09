@@ -286,7 +286,7 @@ export async function requestNotificationPermission(): Promise<{ success: boolea
     // Subscribe to push
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
     })
 
     console.log('Push subscription:', subscription)
