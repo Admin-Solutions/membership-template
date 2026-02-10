@@ -32,7 +32,7 @@ function App() {
 
       <main
         ref={scrollRef as React.RefObject<HTMLElement>}
-        className={`app-main ${showLayout ? "with-header" : ""}`}
+        className={`app-main mx-auto px-4 pb-6 ${showLayout ? "with-header" : ""}`}
       >
         <Routes>
           <Route path="/" element={<Home />} />

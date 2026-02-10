@@ -227,7 +227,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .header-logo {
-  height: 36px;
+  height: 40px;
   width: auto;
   max-width: 100px;
   object-fit: contain;
@@ -417,6 +417,7 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(var(--blur-sm));
   -webkit-backdrop-filter: blur(var(--blur-sm));
+  pointer-events: auto;
 }
 
 .menu-panel {
@@ -433,6 +434,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   padding-top: var(--safe-top);
+  pointer-events: auto;
 }
 
 .menu-header {
@@ -674,12 +676,12 @@ h1, h2, h3, h4, h5, h6 {
    ======================================== */
 .slide-panel {
   position: absolute;
-  top: calc(52px + var(--safe-top));
   left: 0;
   width: 100%;
-  min-height: calc(100dvh - (52px + var(--safe-top)));
+  min-height: 100dvh;
   overflow-y: auto;
   touch-action: pan-y;
+  padding: 0 12px;
 }
 
 /* ========================================
@@ -767,6 +769,7 @@ h1, h2, h3, h4, h5, h6 {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: env(safe-area-inset-bottom);
+  text-align: center;
 }
 
 /* ========================================
@@ -830,7 +833,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   height: min(90dvh, 90vh);
   max-height: 100%;
-  background: var(--bg-dark);
+  background: var(--bg-darkest);
   border-top-left-radius: var(--radius-xl);
   border-top-right-radius: var(--radius-xl);
   z-index: 1000;
@@ -860,34 +863,6 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
 }
 
-.events-modal .grid-wrap {
-  grid-template-columns: repeat(1, 1fr);
-}
-
-.events-modal .grid-item .box {
-  aspect-ratio: unset;
-  display: flex;
-  gap: 20px;
-  background: var(--bg-card);
-}
-
-.events-modal .grid-item .box::before {
-  content: none;
-}
-
-.events-modal .grid-item .box .title {
-  position: relative;
-  padding: 0;
-  font-size: 18px;
-  margin: 0 0 15px 0;
-}
-
-.events-modal img {
-  width: 150px;
-  height: 150px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-}
 
 /* ========================================
    Iframe Modal
@@ -1003,7 +978,7 @@ h1, h2, h3, h4, h5, h6 {
    Header Section (Page Headers)
    ======================================== */
 .header {
-  padding: 0 0 12px 0;
+  padding: 20px 0;
   position: relative;
   width: 100%;
   display: flex;
@@ -1190,7 +1165,7 @@ h1, h2, h3, h4, h5, h6 {
    Benefits Section
    ======================================== */
 #benefits {
-  padding: 20px 0;
+  padding: 20px 12px;
 }
 
 
@@ -1222,10 +1197,6 @@ h1, h2, h3, h4, h5, h6 {
 @media only screen and (max-width: 768px) {
   .header .title {
     font-size: 20px;
-  }
-
-  .slide-panel {
-    padding-top: 100px;
   }
 
   .slide-panel .logo {

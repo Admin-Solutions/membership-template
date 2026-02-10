@@ -184,53 +184,49 @@ export default function Hub() {
             style={{ overflowY: "auto", overflowX: "hidden", touchAction: "pan-y" }}
           >
             <section className="header">
-              <div className="max-w-4xl mx-auto px-4">
-                <div className="flex items-center gap-4">
-                  {headerInfo?.nexusProfileImage && (
-                    <img
-                      src={headerInfo.nexusProfileImage}
-                      className="logo"
-                      alt="profile"
-                    />
+              <div className="flex items-center gap-4">
+                {headerInfo?.nexusProfileImage && (
+                  <img
+                    src={headerInfo.nexusProfileImage}
+                    className="logo"
+                    alt="profile"
+                  />
+                )}
+                <div>
+                  <div className="title">{decodeHtml(headerInfo?.nexusProfileTitle)}</div>
+                  {headerInfo?.nexusProfileExpText && (
+                    <button
+                      className="read-more-btn"
+                      onClick={() => setShowHeaderModal(true)}
+                    >
+                      Read More
+                    </button>
                   )}
-                  <div>
-                    <div className="title">{decodeHtml(headerInfo?.nexusProfileTitle)}</div>
-                    {headerInfo?.nexusProfileExpText && (
-                      <button
-                        className="read-more-btn"
-                        onClick={() => setShowHeaderModal(true)}
-                      >
-                        Read More
-                      </button>
-                    )}
-                  </div>
                 </div>
               </div>
             </section>
 
-            <section className="hub py-2">
-              <div className="max-w-4xl mx-auto px-4">
-                {(activePanel.structural || activePanel.aggregatedTokens) && (
-                  <Grid
-                    data={[
-                      ...(activePanel.structural?.map((i) => ({
-                        ...i,
-                        _type: "structural",
-                      })) || []),
-                      ...(activePanel.aggregatedTokens?.map((i) => ({
-                        ...i,
-                        _type: "aggregatedTokens",
-                      })) || []),
-                    ]}
-                    onClick={(item) =>
-                      item._type === "structural"
-                        ? handleBoxClick(item)
-                        : handleBoxModalClick(item)
-                    }
-                    type="mixed"
-                  />
-                )}
-              </div>
+            <section className="hub mt-6 px-2 md:px-4">
+              {(activePanel.structural || activePanel.aggregatedTokens) && (
+                <Grid
+                  data={[
+                    ...(activePanel.structural?.map((i) => ({
+                      ...i,
+                      _type: "structural",
+                    })) || []),
+                    ...(activePanel.aggregatedTokens?.map((i) => ({
+                      ...i,
+                      _type: "aggregatedTokens",
+                    })) || []),
+                  ]}
+                  onClick={(item) =>
+                    item._type === "structural"
+                      ? handleBoxClick(item)
+                      : handleBoxModalClick(item)
+                  }
+                  type="mixed"
+                />
+              )}
             </section>
           </motion.div>
         </AnimatePresence>
@@ -238,10 +234,10 @@ export default function Hub() {
 
       {showHeaderModal && (
         <Modal onClose={() => setShowHeaderModal(false)}>
-          <h2 className="mb-3 text-xl font-bold">
+          <h2 className="text-xl font-bold" style={{ marginBottom: 12, color: '#000' }}>
             {decodeHtml(headerInfo?.nexusProfileTitle)}
           </h2>
-          <hr className="border-gray-300 my-3" />
+          <hr className="border-gray-300" style={{ marginTop: 12, marginBottom: 12 }} />
           <div className="text-gray-700">
             {decodeHtml(headerInfo?.nexusProfileExpText)}
           </div>
@@ -304,48 +300,51 @@ interface GridProps {
 
 function Grid({ data, onClick, type }: GridProps) {
   return (
-    <div className="grid-wrap">
-      {data.map((item, i) => (
-        <Card key={i} item={item} onClick={onClick} type={type} />
-      ))}
+    <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+      {data.map((item, i) => {
+        const itemType = type === "mixed" ? item._type : type;
+        const image =
+          itemType === "structural"
+            ? item.nexusBGImage
+            : item.brandWalletnexusBGImage;
+        const name =
+          itemType === "aggregatedTokens"
+            ? item.brandWalletnexusProfileTitle
+            : item.nexusProfileTitle;
+
+        return (
+          <EntityCard
+            key={i}
+            image={image || ""}
+            name={decodeHtml(name || "")}
+            onClick={() => onClick(item)}
+          />
+        );
+      })}
     </div>
   );
 }
 
-interface CardProps {
-  item: GridItem;
-  onClick: (item: GridItem) => void;
-  type: string;
+interface EntityCardProps {
+  image: string;
+  name: string;
+  onClick?: () => void;
 }
 
-function Card({ item, onClick, type }: CardProps) {
-  const itemType = type === "mixed" ? item._type : type;
-  const bgImage =
-    itemType === "structural" ? item.nexusBGImage : item.brandWalletnexusBGImage;
-  const title =
-    itemType === "aggregatedTokens"
-      ? item.brandWalletnexusProfileTitle
-      : item.nexusProfileTitle;
-
+function EntityCard({ image, name, onClick }: EntityCardProps) {
   return (
     <div
       className="relative aspect-square rounded-3xl overflow-hidden cursor-pointer group border border-[#212121]"
-      onClick={() => onClick(item)}
-      role="button"
+      onClick={onClick}
     >
       <img
-        src={bgImage}
-        alt={title || ""}
+        src={image}
+        alt={name}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 p-4">
-        <h3
-          className="text-white text-lg leading-tight line-clamp-2"
-          style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}
-        >
-          {title}
-        </h3>
+      <div className="absolute inset-x-0 bottom-0" style={{ padding: 16 }}>
+        <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>{name}</h3>
       </div>
     </div>
   );
@@ -363,12 +362,14 @@ function Modal({ children, onClose }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-white text-black p-8 rounded-xl max-w-xl w-[90%] relative"
+        className="bg-white text-black rounded-xl max-w-xl w-[90%] relative"
+        style={{ padding: 32 }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-2 right-4 text-2xl bg-transparent border-none cursor-pointer"
+          className="absolute text-2xl bg-transparent border-none cursor-pointer"
+          style={{ top: 8, right: 16 }}
           aria-label="Close"
         >
           ×
@@ -406,20 +407,21 @@ function BottomSlide({ onClose, links, token }: BottomSlideProps) {
     >
       <div className="bottom-slide-handle" />
       <div className="bottom-slide-content">
-        <div className="max-w-md mx-auto text-center pt-4 pb-10 px-4">
+        <div className="max-w-md text-center" style={{ margin: '0 auto', padding: '16px 16px 40px' }}>
           <img
             src={token.brandWalletnexusProfileImage}
-            className="w-36 h-36 rounded-full object-cover mx-auto"
+            className="w-36 h-36 rounded-full object-cover"
+            style={{ margin: '0 auto' }}
             alt="token"
           />
-          <h3 className="mt-3 text-xl font-bold">
+          <h3 className="text-xl font-bold" style={{ marginTop: 12 }}>
             {token.brandWalletnexusProfileTitle}
           </h3>
-          <p className="mt-3 text-gray-300">{token.brandWalletnexusProfileExpText}</p>
+          <p className="text-gray-300" style={{ marginTop: 12 }}>{token.brandWalletnexusProfileExpText}</p>
 
           {linkList.length > 0 ? (
-            <div className="mt-6">
-              <h4 className="mb-3 text-lg font-semibold">Links</h4>
+            <div style={{ marginTop: 24 }}>
+              <h4 className="text-lg font-semibold" style={{ marginBottom: 12 }}>Links</h4>
               {linkList.map((link, i) => (
                 <div
                   key={i}
@@ -446,7 +448,7 @@ function BottomSlide({ onClose, links, token }: BottomSlideProps) {
               ))}
             </div>
           ) : (
-            <p className="mt-4 opacity-75">No links available.</p>
+            <p className="opacity-75" style={{ marginTop: 16 }}>No links available.</p>
           )}
         </div>
       </div>
