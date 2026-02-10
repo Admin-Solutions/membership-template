@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { fetchWalletProfiles } from "../store/membershipSlice";
 import {
-  formatEventDate,
   buildWalletURLWithVirtualProxy,
   appendEmbedParam,
 } from "../utils/helpers";
@@ -84,7 +83,7 @@ export default function Benefits() {
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="absolute inset-x-0 bottom-0" style={{ padding: 16 }}>
               <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>Travel</h3>
             </div>
           </div>
@@ -99,7 +98,7 @@ export default function Benefits() {
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="absolute inset-x-0 bottom-0" style={{ padding: 16 }}>
               <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>Events</h3>
             </div>
           </div>
@@ -114,7 +113,7 @@ export default function Benefits() {
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-4">
+            <div className="absolute inset-x-0 bottom-0" style={{ padding: 16 }}>
               <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>Games</h3>
             </div>
           </div>
@@ -165,34 +164,31 @@ export default function Benefits() {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <div className="max-w-xl mx-auto px-4">
-                      <h5 className="my-4 text-white text-lg">
+                    <div style={{ padding: '0 12px' }}>
+                      <h5 className="text-white text-lg" style={{ margin: '16px 0' }}>
                         You can use your membership at the following events.
                       </h5>
-                      <div className="grid-wrap">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
                         {wallets.map((wallet) => (
-                          <div key={wallet.VirtualProxyGUID} className="grid-item">
-                            <div
-                              className="box flex items-center"
-                              style={{ cursor: "pointer" }}
-                              onClick={() => {
-                                setShowEventsModal(false);
-                                setActiveWalletLink(
-                                  buildWalletURLWithVirtualProxy(wallet.VirtualProxyGUID)
-                                );
-                              }}
-                            >
-                              <img
-                                src={wallet.EventWalletBGImage}
-                                alt=""
-                                className="w-36 h-36 object-cover rounded-lg"
-                              />
-                              <div className="ml-4">
-                                <div className="title">{wallet.EventWalletTitle}</div>
-                                <div className="text-white text-sm">
-                                  {formatEventDate(wallet.StartTime)}
-                                </div>
-                              </div>
+                          <div
+                            key={wallet.VirtualProxyGUID}
+                            className="relative rounded-3xl overflow-hidden cursor-pointer group border border-[#212121]"
+                            style={{ aspectRatio: '1 / 1' }}
+                            onClick={() => {
+                              setShowEventsModal(false);
+                              setActiveWalletLink(
+                                buildWalletURLWithVirtualProxy(wallet.VirtualProxyGUID)
+                              );
+                            }}
+                          >
+                            <img
+                              src={wallet.EventWalletBGImage}
+                              alt={wallet.EventWalletTitle}
+                              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                            <div className="absolute inset-x-0 bottom-0" style={{ padding: 16 }}>
+                              <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>{wallet.EventWalletTitle}</h3>
                             </div>
                           </div>
                         ))}
