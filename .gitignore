@@ -17,9 +17,9 @@ dist-ssr
 
 # Environment files (contain tokens/secrets)
 .env
-.env.development
 .env.production
 .env.local
+# .env.development is a committed template; local overrides go in .env.development.local (covered by *.local)
 
 # Editor directories and files
 .vscode/*
