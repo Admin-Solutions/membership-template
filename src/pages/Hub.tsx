@@ -1,15 +1,21 @@
-import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { fetchMembershipData, fetchMembershipLinks } from "../store/membershipSlice";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
+import { api } from "../actions/api";
+import type { ApiPayload } from "../store/config";
 import { pushHistory, decodeHtml, decodeMapper } from "../utils/helpers";
+import { handleBack } from "../utils/hubNavigation";
 import type {
   PanelStackItem,
   StructuralItem,
   AggregatedToken,
 } from "../utils/hubNavigation";
 
-const chitAuthority = "1009d4e8-af8e-4339-8711-f85604bf153e";
+const chitAuthority =
+  (window as unknown as { __BOOTSTRAP__?: { WTOB_GUID?: string } }).__BOOTSTRAP__?.WTOB_GUID ||
+  (window as unknown as { eventInfo?: { EventNexusGUID?: string } }).eventInfo?.EventNexusGUID ||
+  "1009d4e8-af8e-4339-8711-f85604bf153e";
 const specialRoles = [785109, 817713, 817475];
 const iFrameRoles = [829034, 829036, 831349];
 
@@ -35,9 +41,35 @@ function sortAlpha<T extends Record<string, any>>(arr: T[] | undefined): T[] {
 }
 
 export default function Hub() {
-  const dispatch = useAppDispatch();
-  const members = useAppSelector((state) => state.membershipData);
-  const links = useAppSelector((state) => state.membershipLinks);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [members, setMembers] = useState<{ loading: boolean; data: any }>({ loading: false, data: null });
+  const [links, setLinks] = useState<{ data?: { dataPayload?: { value?: LinkItem[] } } }>({});
+
+  const fetchData = useCallback(async (payload: ApiPayload) => {
+    setMembers((prev) => ({ ...prev, loading: true }));
+    try {
+      const data = await api.fetchMembershipData(payload);
+      setMembers({ loading: false, data });
+    } catch {
+      setMembers({ loading: false, data: null });
+    }
+  }, []);
+
+  const fetchLinks = useCallback(async (walletGUIDForLinks: string) => {
+    try {
+      const data = await api.fetchMembershipLinks({ "@WalletGUIDForLinks": walletGUIDForLinks });
+      setLinks({ data: data as { dataPayload?: { value?: LinkItem[] } } });
+    } catch {
+      // links remain empty
+    }
+  }, []);
+
+  // Listen for back navigation triggered from Footer
+  useEffect(() => {
+    const handler = (e: Event) => fetchData((e as CustomEvent).detail as ApiPayload);
+    window.addEventListener("membership:fetch", handler);
+    return () => window.removeEventListener("membership:fetch", handler);
+  }, [fetchData]);
 
   const [panelStack, setPanelStack] = useState<PanelStackItem[]>([]);
   const [showHeaderModal, setShowHeaderModal] = useState(false);
@@ -47,12 +79,27 @@ export default function Hub() {
   const [slideDirection, setSlideDirection] = useState("forward");
 
   const activeGUIDRef = useRef<string | null>(null);
+  const navigate = useNavigate();
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const goBack = useCallback(() => {
+    if (panelStack.length <= 1) return;
+    const result = handleBack({
+      onFetch: fetchData,
+      setPanelStack,
+      setSlideDirection,
+      activeGUIDRef,
+    });
+    if (result.action === "redirect" && result.url) {
+      navigate(result.url);
+    }
+  }, [panelStack.length, fetchData, navigate]);
 
   useEffect(() => {
-    dispatch(fetchMembershipData({ "@ChitAuthority": chitAuthority }));
+    fetchData({ "@ChitAuthority": chitAuthority });
     pushHistory(chitAuthority);
     activeGUIDRef.current = chitAuthority;
-  }, [dispatch]);
+  }, [fetchData]);
 
   const mainValue = members?.data?.dataPayload?.value?.[0] || {};
   const structural = sortAlpha(mainValue.structural);
@@ -111,7 +158,7 @@ export default function Hub() {
     if (!item.nexusGUID) return;
 
     activeGUIDRef.current = item.nexusGUID;
-    dispatch(fetchMembershipData({ "@Nexus": item.nexusGUID }));
+    fetchData({ "@Nexus": item.nexusGUID });
     pushHistory(item.nexusGUID);
 
     setPanelStack((old) => [
@@ -145,7 +192,7 @@ export default function Hub() {
 
     setSelectedToken(item as AggregatedToken);
     if (item.brandWalletnexusGUID) {
-      dispatch(fetchMembershipLinks({ "@WalletGUIDForLinks": item.brandWalletnexusGUID }));
+      fetchLinks(item.brandWalletnexusGUID);
     }
   };
 
@@ -165,8 +212,42 @@ export default function Hub() {
     }
   }, [selectedData, isIframeActive, selectedToken]);
 
+  // iOS scroll lock when modals are open
+  useEffect(() => {
+    const modalOpen = showHeaderModal || selectedToken || (selectedData && isIframeActive);
+    if (modalOpen) {
+      const appMain = document.querySelector('.app-main') as HTMLElement;
+      const scrollY = appMain ? appMain.scrollTop : window.scrollY;
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      if (appMain) appMain.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        if (appMain) appMain.style.overflow = "";
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [showHeaderModal, selectedToken, selectedData, isIframeActive]);
+
+  const iframeDragControls = useDragControls();
   const activePanel = panelStack.length > 0 ? panelStack[panelStack.length - 1] : null;
-  if (!activePanel) return <div className="p-5 text-center text-white">Loading...</div>;
+  if (!activePanel || members?.loading) return (
+    <div className="flex justify-center items-center loading-dots-container">
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2, ease: 'easeInOut' }}
+          className="loading-dot"
+        />
+      ))}
+    </div>
+  );
   const headerInfo = activePanel.header?.[0] || null;
 
   return (
@@ -180,20 +261,55 @@ export default function Hub() {
             animate="visible"
             exit={slideDirection === "forward" ? "forwardExit" : "backwardExit"}
             variants={slideVariants}
-            transition={{ duration: 0.4 }}
-            style={{ overflowY: "auto", overflowX: "hidden", touchAction: "pan-y" }}
+            transition={{ type: 'spring', damping: 28, stiffness: 160 }}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+            }}
+            onTouchEnd={(e) => {
+              if (!touchStartRef.current) return;
+              const touch = e.changedTouches[0];
+              const dx = touch.clientX - touchStartRef.current.x;
+              const dy = touch.clientY - touchStartRef.current.y;
+              touchStartRef.current = null;
+              if (dx > 80 && Math.abs(dy) < Math.abs(dx)) {
+                goBack();
+              }
+            }}
+            style={{ overflowY: (selectedToken || showHeaderModal || (selectedData && isIframeActive)) ? "hidden" : "auto", overflowX: "hidden", WebkitOverflowScrolling: "touch" as never }}
           >
-            <section className="header">
-              <div className="flex items-center gap-4">
+            <motion.section
+              className="hub-section-top"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <div className="hub-header-row">
                 {headerInfo?.nexusProfileImage && (
-                  <img
-                    src={headerInfo.nexusProfileImage}
-                    className="logo"
-                    alt="profile"
-                  />
+                  <motion.div
+                    className="image-ring image-ring--white"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 200, delay: 0.15 }}
+                  >
+                    <img
+                      src={headerInfo.nexusProfileImage}
+                      alt="profile"
+                    />
+                  </motion.div>
                 )}
-                <div>
-                  <div className="title">{decodeHtml(headerInfo?.nexusProfileTitle)}</div>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: 0.25, ease: 'easeOut' }}
+                >
+                  <h2
+                    className="heading-oswald"
+                    style={{ lineHeight: 1.15, marginBottom: 8 }}
+                  >
+                    {decodeHtml(headerInfo?.nexusProfileTitle)}
+                  </h2>
+                  <div className="divider-accent-bar" style={{ marginBottom: 14 }} />
                   {headerInfo?.nexusProfileExpText && (
                     <button
                       className="read-more-btn"
@@ -202,11 +318,16 @@ export default function Hub() {
                       Read More
                     </button>
                   )}
-                </div>
+                </motion.div>
               </div>
-            </section>
+            </motion.section>
 
-            <section className="hub mt-6 px-2 md:px-4">
+            <motion.section
+              className="hub-section-grid"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3, ease: 'easeOut' }}
+            >
               {(activePanel.structural || activePanel.aggregatedTokens) && (
                 <Grid
                   data={[
@@ -227,30 +348,34 @@ export default function Hub() {
                   type="mixed"
                 />
               )}
-            </section>
+            </motion.section>
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {showHeaderModal && (
-        <Modal onClose={() => setShowHeaderModal(false)}>
-          <h2 className="text-xl font-bold" style={{ marginBottom: 12, color: '#000' }}>
-            {decodeHtml(headerInfo?.nexusProfileTitle)}
-          </h2>
-          <hr className="border-gray-300" style={{ marginTop: 12, marginBottom: 12 }} />
-          <div className="text-gray-700">
-            {decodeHtml(headerInfo?.nexusProfileExpText)}
-          </div>
-        </Modal>
-      )}
+      <AnimatePresence>
+        {showHeaderModal && (
+          <Modal onClose={() => setShowHeaderModal(false)}>
+            <h2 className="heading-oswald" style={{ marginBottom: 12 }}>
+              {decodeHtml(headerInfo?.nexusProfileTitle)}
+            </h2>
+            <div className="divider-accent" style={{ marginTop: 12, marginBottom: 12 }} />
+            <div className="modal-body-text">
+              {decodeHtml(headerInfo?.nexusProfileExpText)}
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
 
-      {selectedToken && (
-        <BottomSlide
-          onClose={() => setSelectedToken(null)}
-          links={links}
-          token={selectedToken}
-        />
-      )}
+      <AnimatePresence>
+        {selectedToken && (
+          <BottomSlide
+            onClose={() => setSelectedToken(null)}
+            links={links}
+            token={selectedToken}
+          />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {selectedData && isIframeActive && (
@@ -270,12 +395,20 @@ export default function Hub() {
               exit={{ y: "100%" }}
               transition={{ duration: 0.35, ease: "easeOut" }}
               drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.3}
+              dragControls={iframeDragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0 }}
+              dragElastic={{ top: 0, bottom: 0.6 }}
               onDragEnd={(_, info) => {
-                if (info.offset.y > 120) closeIframe();
+                if (info.offset.y > 60 || info.velocity.y > 300) closeIframe();
               }}
             >
+              <div
+                className="drag-handle-wrapper drag-handle-wrapper--iframe"
+                onPointerDown={(e) => iframeDragControls.start(e)}
+              >
+                <div className="drag-handle-bar drag-handle-bar--sm" />
+              </div>
               <div className="iframe-wrapper">
                 <iframe
                   src={`https://seemynft.page/mytoken/${selectedData.confluenceChitAuthority}`}
@@ -300,7 +433,7 @@ interface GridProps {
 
 function Grid({ data, onClick, type }: GridProps) {
   return (
-    <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
       {data.map((item, i) => {
         const itemType = type === "mixed" ? item._type : type;
         const image =
@@ -318,6 +451,7 @@ function Grid({ data, onClick, type }: GridProps) {
             image={image || ""}
             name={decodeHtml(name || "")}
             onClick={() => onClick(item)}
+            index={i}
           />
         );
       })}
@@ -329,24 +463,37 @@ interface EntityCardProps {
   image: string;
   name: string;
   onClick?: () => void;
+  index: number;
 }
 
-function EntityCard({ image, name, onClick }: EntityCardProps) {
+function EntityCard({ image, name, onClick, index }: EntityCardProps) {
   return (
-    <div
-      className="relative aspect-square rounded-3xl overflow-hidden cursor-pointer group border border-[#212121]"
+    <motion.div
+      initial={{ opacity: 0, y: 24, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        duration: 0.4,
+        delay: Math.min(index * 0.06, 0.8),
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }}
+      whileHover={{
+        scale: 1.02,
+        transition: { duration: 0.2, ease: 'easeOut' },
+      }}
+      whileTap={{
+        scale: 0.98,
+        transition: { duration: 0.1 },
+      }}
+      className="entity-card cursor-pointer"
       onClick={onClick}
     >
-      <img
-        src={image}
-        alt={name}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0" style={{ padding: 16 }}>
-        <h3 className="text-white text-lg leading-tight" style={{ fontFamily: "'Oswald', sans-serif", fontWeight: 500 }}>{name}</h3>
+      <div className="entity-card-image">
+        <img src={image} alt={name} />
       </div>
-    </div>
+      <div className="entity-card-body">
+        <h3 className="entity-card-title">{name}</h3>
+      </div>
+    </motion.div>
   );
 }
 
@@ -356,27 +503,37 @@ interface ModalProps {
 }
 
 function Modal({ children, onClose }: ModalProps) {
-  return (
-    <div
-      className="fixed inset-0 bg-black/60 flex justify-center items-center z-[9999]"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white text-black rounded-xl max-w-xl w-[90%] relative"
-        style={{ padding: 32 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          onClick={onClose}
-          className="absolute text-2xl bg-transparent border-none cursor-pointer"
-          style={{ top: 8, right: 16 }}
-          aria-label="Close"
+  return createPortal(
+    <>
+      <motion.div
+        className="glass-modal-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        onClick={onClose}
+      />
+      <div className="glass-modal-center" onClick={onClose}>
+        <motion.div
+          className="glass-modal-box"
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          onClick={(e) => e.stopPropagation()}
         >
-          ×
-        </button>
-        {children}
+          <button
+            className="glass-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+          {children}
+        </motion.div>
       </div>
-    </div>
+    </>,
+    document.body
   );
 }
 
@@ -387,71 +544,116 @@ interface BottomSlideProps {
 }
 
 function BottomSlide({ onClose, links, token }: BottomSlideProps) {
+  const dragControls = useDragControls();
   const linkList = links?.data?.dataPayload?.value || [];
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
-  return (
-    <motion.div
-      className="bottom-slide"
-      initial={{ y: "100%" }}
-      animate={{ y: 0 }}
-      exit={{ y: "100%" }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      drag={isMobile ? "y" : false}
-      dragConstraints={{ top: 0, bottom: 0 }}
-      dragElastic={0.25}
-      dragMomentum={false}
-      onDragEnd={(_, info) => {
-        if (info.offset.y > 120) onClose();
-      }}
-    >
-      <div className="bottom-slide-handle" />
-      <div className="bottom-slide-content">
-        <div className="max-w-md text-center" style={{ margin: '0 auto', padding: '16px 16px 40px' }}>
-          <img
-            src={token.brandWalletnexusProfileImage}
-            className="w-36 h-36 rounded-full object-cover"
-            style={{ margin: '0 auto' }}
-            alt="token"
-          />
-          <h3 className="text-xl font-bold" style={{ marginTop: 12 }}>
-            {token.brandWalletnexusProfileTitle}
-          </h3>
-          <p className="text-gray-300" style={{ marginTop: 12 }}>{token.brandWalletnexusProfileExpText}</p>
-
-          {linkList.length > 0 ? (
-            <div style={{ marginTop: 24 }}>
-              <h4 className="text-lg font-semibold" style={{ marginBottom: 12 }}>Links</h4>
-              {linkList.map((link, i) => (
-                <div
-                  key={i}
-                  className="social-links"
-                  onClick={() =>
-                    window.open(
-                      link.LinkURL?.startsWith("http")
-                        ? link.LinkURL
-                        : `https://${link.LinkURL}`,
-                      "_blank"
-                    )
-                  }
-                >
-                  <img
-                    className="social-links-icon"
-                    src={link.LinkImage}
-                    alt="link"
-                  />
-                  <div>
-                    <div className="text-left font-bold">{link.LinkTitle}</div>
-                    <div className="social-links-text">{link.LinkText}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="opacity-75" style={{ marginTop: 16 }}>No links available.</p>
-          )}
+  return createPortal(
+    <>
+      <motion.div
+        className="modal-backdrop"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      <motion.div
+        className="bottom-sheet"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: 'spring', damping: 28, stiffness: 180 }}
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 60 || info.velocity.y > 300) onClose();
+        }}
+      >
+        <div
+          className="drag-handle-wrapper drag-handle-wrapper--top"
+          onPointerDown={(e) => dragControls.start(e)}
+        >
+          <div className="drag-handle-bar drag-handle-bar--md" />
         </div>
-      </div>
-    </motion.div>
+        <div className="bottom-sheet-scroll">
+          <div className="bottom-sheet-inner">
+            <motion.div
+              className="image-ring image-ring--silver"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 180, delay: 0.1 }}
+            >
+              <img
+                src={token.brandWalletnexusProfileImage}
+                alt="token"
+              />
+            </motion.div>
+
+            <motion.h3
+              className="heading-oswald"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+              style={{ marginTop: 20 }}
+            >
+              {token.brandWalletnexusProfileTitle}
+            </motion.h3>
+
+            <motion.p
+              className="text-body-silver"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              style={{ marginTop: 12 }}
+            >
+              {token.brandWalletnexusProfileExpText}
+            </motion.p>
+
+            {linkList.length > 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+                style={{ marginTop: 28 }}
+              >
+                <h4 className="links-section-header">Links</h4>
+                {linkList.map((link, i) => (
+                  <motion.div
+                    key={i}
+                    className="link-card"
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.45 + i * 0.06, duration: 0.3 }}
+                    onClick={() =>
+                      window.open(
+                        link.LinkURL?.startsWith("http")
+                          ? link.LinkURL
+                          : `https://${link.LinkURL}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    <img
+                      src={link.LinkImage}
+                      alt="link"
+                      className="link-card-icon"
+                    />
+                    <div className="link-card-text">
+                      <div className="link-card-title">{link.LinkTitle}</div>
+                      <div className="link-card-subtitle">{link.LinkText}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : (
+              <p className="text-no-links">No links available.</p>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </>,
+    document.body
   );
 }

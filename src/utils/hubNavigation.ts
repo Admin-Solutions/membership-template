@@ -1,11 +1,10 @@
 import { getHistory, HISTORY_KEY, cleanupHistory } from "./helpers";
 import { walletGUID } from "../store/config";
-import { fetchMembershipData } from "../store/membershipSlice";
-import type { AppDispatch } from "../store/store";
+import type { ApiPayload } from "../store/config";
 import type { MutableRefObject } from "react";
 
 interface HandleBackParams {
-  dispatch: AppDispatch;
+  onFetch?: (payload: ApiPayload) => void;
   setPanelStack?: React.Dispatch<React.SetStateAction<PanelStackItem[]>>;
   setSlideDirection?: React.Dispatch<React.SetStateAction<string>>;
   activeGUIDRef?: MutableRefObject<string | null>;
@@ -56,7 +55,7 @@ interface BackResult {
 }
 
 export function handleBack({
-  dispatch,
+  onFetch,
   setPanelStack,
   setSlideDirection,
   activeGUIDRef,
@@ -94,13 +93,17 @@ export function handleBack({
 
   const isRootMembership = history.length === 1;
 
-  dispatch(
-    fetchMembershipData(
-      isRootMembership
-        ? { "@ChitAuthority": newLastGUID }
-        : { "@Nexus": newLastGUID }
-    )
-  );
+  const fetchPayload: ApiPayload = isRootMembership
+    ? { "@ChitAuthority": newLastGUID }
+    : { "@Nexus": newLastGUID };
+
+  if (onFetch) {
+    onFetch(fetchPayload);
+  } else {
+    window.dispatchEvent(
+      new CustomEvent("membership:fetch", { detail: fetchPayload })
+    );
+  }
 
   setPanelStack?.((old) => old.slice(0, -1));
 

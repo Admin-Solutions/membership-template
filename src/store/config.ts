@@ -19,9 +19,13 @@ export const guid = (): string => {
 
 export const walletGUID = guid();
 
-// In dev, use relative URL so requests go through Vite proxy (avoids CORS)
-// In production, the app is served from the same origin
-export const BASE_URL = import.meta.env.DEV ? "" : "https://seemynft.page";
+// VITE_API_BASE_URL=/api in dev → strip the /api suffix → ""  (requests go through Vite proxy)
+// VITE_API_BASE_URL not set  → "" in dev, full origin in prod
+export const BASE_URL = (() => {
+  const v = import.meta.env.VITE_API_BASE_URL as string | undefined;
+  if (v) return v.replace(/\/api\/?$/, '');
+  return import.meta.env.DEV ? '' : 'https://seemynft.page';
+})();
 
 export interface ApiPayload {
   '@ChitAuthority'?: string;
@@ -31,38 +35,38 @@ export interface ApiPayload {
 
 export const getMembershipData = (payload: ApiPayload) => {
   return {
-    force_use_external_pmc: true,
+    //force_use_external_pmc: true,
     pmc,
     endPointGUID: "66ef268e-650a-4279-a4d0-a3546fdb290c",
-    useDevEnvironment: false,
+    //useDevEnvironment: false,
     additionalPayload: { ...payload },
   };
 };
 
 export const getMembershipLinks = (payload: ApiPayload) => {
   return {
-    force_use_external_pmc: true,
+    //force_use_external_pmc: true,
     pmc,
     endPointGUID: "a04aebbe-f9fd-468e-a64f-c3ee5e64f7a4",
-    useDevEnvironment: false,
+    //useDevEnvironment: false,
     additionalPayload: { ...payload },
   };
 };
 
 export const getMembershipProfile = () => {
   return {
-    force_use_external_pmc: true,
+    //force_use_external_pmc: true,
     pmc,
     endPointGUID: "93f92320-78bd-45b2-9569-3940f6f853d4",
-    useDevEnvironment: false,
+    //useDevEnvironment: false,
   };
 };
 
 export const getWalletProfiles = () => {
   return {
-    force_use_external_pmc: true,
+    //force_use_external_pmc: true,
     pmc,
     endPointGUID: "5d9352b6-c88f-4725-b3c5-12be0ae39354",
-    useDevEnvironment: false,
+    //useDevEnvironment: false,
   };
 };
