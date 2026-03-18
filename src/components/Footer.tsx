@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Network, Wallet, Gift, ArrowUpLeft, Menu, X, Settings, Bell, HelpCircle, LogOut } from "lucide-react";
+import { Home, Network, Wallet, Gift, ArrowUpLeft, X, Settings, Bell, HelpCircle, LogOut, Shield } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { getHistory, onHistoryChange } from "../utils/helpers";
 import { handleBack } from "../utils/hubNavigation";
-import { useAppDispatch } from "../store/hooks";
 import { LazyWallet } from "./LazyWallet";
 
 interface FooterProps {
@@ -24,7 +23,6 @@ interface NavItem {
 
 export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: FooterProps) {
   const location = useLocation();
-  const dispatch = useAppDispatch();
   const [historyLength, setHistoryLength] = useState(getHistory()?.length || 0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
@@ -53,11 +51,30 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (menuOpen) {
+      const appMain = document.querySelector('.app-main') as HTMLElement;
+      const scrollY = appMain ? appMain.scrollTop : window.scrollY;
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      if (appMain) appMain.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        if (appMain) appMain.style.overflow = "";
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [menuOpen]);
+
   const showBack = location.pathname.startsWith("/hub") && historyLength > 1;
 
   const handleBackClick = () => {
     const result = handleBack({
-      dispatch,
       activeGUIDRef,
     });
 
@@ -172,7 +189,7 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
           onClick={() => setMenuOpen(true)}
           aria-label="Open menu"
         >
-          <Menu size={22} />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 8H13.75M5 12H19M10.25 16L19 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"></path></svg>
         </button>
       </div>
 
@@ -194,18 +211,28 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 120 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="menu-panel"
             >
+              <button
+                className="menu-close"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                <X size={16} />
+              </button>
+
               <div className="menu-header">
-                <h2>Menu</h2>
-                <button
-                  className="menu-close"
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <X size={24} />
-                </button>
+                <div className="menu-header-content">
+                  <div className="menu-header-icon">
+                    <Shield size={20} />
+                  </div>
+                  <div className="menu-header-text">
+                    <h2>Membership</h2>
+                    <p>Navigation</p>
+                  </div>
+                </div>
+                <div className="menu-header-divider" />
               </div>
 
               <div className="menu-items">
@@ -216,11 +243,13 @@ export default function Footer({ navCollapsed, navExpanded, setNavExpanded }: Fo
                       key={item.action}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ delay: 0.05 + index * 0.04 }}
                       className="menu-item-slide"
                       onClick={() => handleMenuAction(item.action)}
                     >
-                      <IconComponent size={20} />
+                      <div className="menu-item-icon">
+                        <IconComponent size={18} />
+                      </div>
                       <span>{item.title}</span>
                     </motion.button>
                   );

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { QrCode } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { fetchMembershipProfile } from "../store/membershipSlice";
+import { api } from "../actions/api";
 
 interface ProfileData {
   image: string | null;
@@ -11,7 +10,6 @@ interface ProfileData {
 }
 
 export default function Profile() {
-  const dispatch = useAppDispatch();
   const [profile, setProfile] = useState<ProfileData>({
     image: null,
     title: "",
@@ -20,25 +18,24 @@ export default function Profile() {
   });
   const [NFTCard, setNFTCard] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  const memberProfile = useAppSelector((state) => state.membershipProfile);
-  const profileData = memberProfile?.data?.dataPayload?.value?.[0] || {};
-
-  useEffect(() => {
-    dispatch(fetchMembershipProfile());
-  }, [dispatch]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [profileData, setProfileData] = useState<Record<string, any>>({});
 
   useEffect(() => {
-    if (profileData) {
-      setProfile({
-        image: profileData.nexusProfileImage || null,
-        title: profileData.nexusProfileTitle || "",
-        text: profileData.nexusProfileExpText || "",
-        tokenText: profileData.tokenText || "",
-      });
-      setNFTCard(profileData.NFTCardImage || null);
-    }
-  }, [profileData]);
+    api.fetchMembershipProfile()
+      .then((data) => {
+        const pd = data?.dataPayload?.value?.[0] || {};
+        setProfileData(pd);
+        setProfile({
+          image: pd.nexusProfileImage || null,
+          title: pd.nexusProfileTitle || "",
+          text: pd.nexusProfileExpText || "",
+          tokenText: pd.tokenText || "",
+        });
+        setNFTCard(pd.NFTCardImage || null);
+      })
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
