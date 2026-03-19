@@ -9,6 +9,43 @@
     <title>Universal Membership</title>
 
     <!-- SERVER_BOOTSTRAP_INJECTION_POINT: Server replaces this with meta tags + bootstrap scripts -->
+    <script>
+      // Apply __BRAND_SKIN__.brandColors CSS vars before React mounts (prevents colour flash).
+      // The server injects window.__BRAND_SKIN__.brandColors via SERVER_BOOTSTRAP_INJECTION_POINT above.
+      // All colour values are hex strings e.g. "#1e6fd4".
+      (function () {
+        var skin = window.__BRAND_SKIN__;
+        var bc = skin && skin.brandColors;
+        if (!bc) return;
+        var r = document.documentElement;
+
+        function hexRgba(hex, a) {
+          var h = hex.replace('#', '');
+          if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+          var n = parseInt(h, 16);
+          return 'rgba(' + ((n>>16)&255) + ', ' + ((n>>8)&255) + ', ' + (n&255) + ', ' + a + ')';
+        }
+
+        if (bc.splash)        { r.style.setProperty('--bg-darkest', bc.splash); r.style.backgroundColor = bc.splash; }
+        if (bc.nexus800)       r.style.setProperty('--bg-dark',    bc.nexus800);
+        if (bc.nexus700)       r.style.setProperty('--bg-card',    bc.nexus700);
+        if (bc.nexus600)       r.style.setProperty('--bg-hover',   bc.nexus600);
+        if (bc.nexus500)       r.style.setProperty('--bg-muted',   bc.nexus500);
+        if (bc.accentHex) {
+          r.style.setProperty('--accent',                bc.accentHex);
+          r.style.setProperty('--accent-glow',           hexRgba(bc.accentHex, 0.3));
+          r.style.setProperty('--profile-accent',        bc.accentHex);
+          r.style.setProperty('--surface-border-light',  hexRgba(bc.accentHex, 0.1));
+          r.style.setProperty('--surface-border-medium', hexRgba(bc.accentHex, 0.2));
+          r.style.setProperty('--surface-border-strong', hexRgba(bc.accentHex, 0.3));
+        }
+        if (bc.accentLightHex) {
+          r.style.setProperty('--accent-light',   bc.accentLightHex);
+          r.style.setProperty('--text-secondary', bc.accentLightHex);
+        }
+        if (bc.accentDarkHex) r.style.setProperty('--accent-dark', bc.accentDarkHex);
+      }());
+    </script>
   </head>
   <body>
     <div id="root"></div>

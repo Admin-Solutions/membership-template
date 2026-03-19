@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { HISTORY_KEY } from "./utils/helpers";
 import { useScrollBehavior } from "./hooks/useScrollBehavior";
@@ -11,10 +11,15 @@ import Profile from "./pages/Profile";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import { ToastContainer } from "./components/ToastContainer";
+import { LoginModal } from "./components/LoginModal";
 
 function App() {
   const location = useLocation();
   const { headerVisible, navCollapsed, navExpanded, setNavExpanded, scrollRef } = useScrollBehavior();
+
+  const [devLoginOpen, setDevLoginOpen] = useState(
+    import.meta.env.DEV && !!(window.__BOOTSTRAP__ as { FORCE_LOGIN?: boolean })?.FORCE_LOGIN
+  );
 
   const layoutPages = ["/hub", "/profile", "/wallet", "/benefits", "/news"];
   const showLayout = layoutPages.includes(location.pathname);
@@ -56,6 +61,18 @@ function App() {
 
       {/* Toast notifications */}
       <ToastContainer />
+
+      {/* Dev-only: show login when server returns FORCE_LOGIN */}
+      {import.meta.env.DEV && (
+        <LoginModal
+          isOpen={devLoginOpen}
+          onClose={() => setDevLoginOpen(false)}
+          onSuccess={() => {
+            setDevLoginOpen(false)
+            fetch('/__dev/refresh-bootstrap').finally(() => window.location.reload())
+          }}
+        />
+      )}
     </div>
   );
 }

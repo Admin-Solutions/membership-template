@@ -104,12 +104,35 @@ export default defineConfig(({ mode }) => {
       parts.push(`<meta property="og:title" content="${ogTitleMatch[1]}" />`)
     }
 
+    const tokenIdMatch = html.match(/<meta\s+property="tokenid"\s+content="([^"]*)"[^>]*>/i)
+    if (tokenIdMatch) {
+      parts.push(`<meta property="tokenid" content="${tokenIdMatch[1]}" />`)
+    }
+
+    // 2. Extract server-injected brand stylesheet (sets CSS variables for this membership)
+    const cssMatch = html.match(/<link[^>]+rel="stylesheet"[^>]+href="(https:\/\/image\.admin\.solutions\/[^"]+)"[^>]*>/i)
+    if (cssMatch) {
+      parts.push(`<link rel="stylesheet" href="${cssMatch[1]}" />`)
+    }
+
     // 2. Extract window.eventInfo and window.__BOOTSTRAP__
     const scriptParts: string[] = []
 
     const eventInfoIdx = html.indexOf('window.eventInfo')
     if (eventInfoIdx !== -1) {
-      const obj = extractObjectLiteral(html, eventInfoIdx)
+      // Handle both direct assignment (window.eventInfo = { ... })
+      // and indirect (var jsObject = {...}; window.eventInfo = jsObject;)
+      const afterAssign = html.substring(eventInfoIdx + 'window.eventInfo'.length).trimStart()
+      let obj: string | null = null
+      if (/^=\s*\{/.test(afterAssign)) {
+        obj = extractObjectLiteral(html, eventInfoIdx)
+      } else {
+        const varNameMatch = afterAssign.match(/^=\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/)
+        if (varNameMatch) {
+          const varDeclIdx = html.lastIndexOf(`var ${varNameMatch[1]}`, eventInfoIdx)
+          if (varDeclIdx !== -1) obj = extractObjectLiteral(html, varDeclIdx)
+        }
+      }
       if (obj) {
         let raw = obj
         raw = raw.replace(/stringToBoolean\(\s*"True"\s*\)/gi, 'true')
@@ -120,12 +143,31 @@ export default defineConfig(({ mode }) => {
 
     const bootstrapIdx = html.indexOf('window.__BOOTSTRAP__')
     if (bootstrapIdx !== -1) {
-      const obj = extractObjectLiteral(html, bootstrapIdx)
-      if (obj) {
-        let raw = obj
+      const afterBootstrap = html.substring(bootstrapIdx + 'window.__BOOTSTRAP__'.length).trimStart()
+      let bsObj: string | null = null
+      if (/^=\s*\{/.test(afterBootstrap)) {
+        bsObj = extractObjectLiteral(html, bootstrapIdx)
+      } else {
+        const varNameMatch = afterBootstrap.match(/^=\s*([a-zA-Z_$][a-zA-Z0-9_$]*)/)
+        if (varNameMatch) {
+          const varDeclIdx = html.lastIndexOf(`var ${varNameMatch[1]}`, bootstrapIdx)
+          if (varDeclIdx !== -1) bsObj = extractObjectLiteral(html, varDeclIdx)
+        }
+      }
+      if (bsObj) {
+        let raw = bsObj
         raw = raw.replace(/stringToBoolean\(\s*"True"\s*\)/gi, 'true')
         raw = raw.replace(/stringToBoolean\(\s*"False"\s*\)/gi, 'false')
         scriptParts.push(`window.__BOOTSTRAP__ = ${raw};`)
+      }
+    }
+
+    // Extract window.__BRAND_SKIN__.brandColors = {...}
+    const brandColorsIdx = html.indexOf('window.__BRAND_SKIN__.brandColors')
+    if (brandColorsIdx !== -1) {
+      const obj = extractObjectLiteral(html, brandColorsIdx)
+      if (obj) {
+        scriptParts.push(`window.__BRAND_SKIN__ = window.__BRAND_SKIN__ || {};\n      window.__BRAND_SKIN__.brandColors = ${obj};`)
       }
     }
 

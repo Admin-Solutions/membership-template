@@ -34,6 +34,7 @@ window.addEventListener('message', (e) => {
 // Initialize mock data for local development
 initDevData();
 
+
 // Initialize message gateway rules
 initDefaultRules();
 
